@@ -89,21 +89,21 @@ void Nunchuck_Init() {
   i2cBuffer[0] = 0xF0;
   i2cBuffer[1] = 0x55;
 
-  HAL_I2C_Master_Transmit(&hi2c2,0xA4,(uint8_t*)i2cBuffer, 2, 100);
+  HAL_I2C_Master_Transmit(&hi2c2,0x52,(uint8_t*)i2cBuffer, 2, 100);
   HAL_Delay(10);
 
   i2cBuffer[0] = 0xFB;
   i2cBuffer[1] = 0x00;
 
-  HAL_I2C_Master_Transmit(&hi2c2,0xA4,(uint8_t*)i2cBuffer, 2, 100);
+  HAL_I2C_Master_Transmit(&hi2c2,0x52,(uint8_t*)i2cBuffer, 2, 100);
   HAL_Delay(10);
 }
 
 void Nunchuck_Read() {
   i2cBuffer[0] = 0x00;
-  HAL_I2C_Master_Transmit(&hi2c2,0xA4,(uint8_t*)i2cBuffer, 1, 100);
+  HAL_I2C_Master_Transmit(&hi2c2,0x52,(uint8_t*)i2cBuffer, 1, 100);
   HAL_Delay(5);
-  if (HAL_I2C_Master_Receive(&hi2c2,0xA4,(uint8_t*)nunchuck_data, 6, 100) == HAL_OK) {
+  if (HAL_I2C_Master_Receive(&hi2c2,0x52,(uint8_t*)nunchuck_data, 6, 100) == HAL_OK) {
 	// HAL_StatusTypeDef HAL_I2C_Master_Receive( 
 	//I2C_HandleTypeDef *  	hi2c,
 	//uint16_t  	DevAddress,
