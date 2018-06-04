@@ -104,6 +104,13 @@ void Nunchuck_Read() {
   HAL_I2C_Master_Transmit(&hi2c2,0xA4,(uint8_t*)i2cBuffer, 1, 100);
   HAL_Delay(5);
   if (HAL_I2C_Master_Receive(&hi2c2,0xA4,(uint8_t*)nunchuck_data, 6, 100) == HAL_OK) {
+	// HAL_StatusTypeDef HAL_I2C_Master_Receive( 
+	//I2C_HandleTypeDef *  	hi2c,
+	//uint16_t  	DevAddress,
+	//uint8_t *  	pData,
+	//uint16_t  	Size,
+	//uint32_t  	Timeout 
+	//) 	
     timeout = 0;
   } else {
     timeout++;
