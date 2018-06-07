@@ -6,3 +6,5 @@ build/*
 build/hover.hex
 .vscode/*
 build/hover.hex
+.vscode/c_cpp_properties.json
+.vscode/settings.json
