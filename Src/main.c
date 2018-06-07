@@ -156,6 +156,11 @@ int main(void) {
 
       button1 = (uint8_t)nunchuck_data[5] & 1;
       button2 = (uint8_t)(nunchuck_data[5] >> 1) & 1;
+    
+      setScopeChannel(0, (int)nunchuck_data[0]);  // nunchuck1
+      setScopeChannel(1, (int)nunchuck_data[1]);  // nunchuck2
+    
+
     #endif
 
     #ifdef CONTROL_PPM
