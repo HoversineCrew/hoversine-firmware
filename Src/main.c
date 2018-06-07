@@ -101,7 +101,7 @@ int main(void) {
   HAL_ADC_Start(&hadc1);
   HAL_ADC_Start(&hadc2);
 
-  for (int i = 8; i >= 0; i--) {
+  for (int i = 1; i >= 0; i--) {
     buzzerFreq = i;
     HAL_Delay(100);
   }
@@ -225,7 +225,7 @@ int main(void) {
       while (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN)) {}
       buzzerFreq = 0;
       buzzerPattern = 0;
-      for (int i = 0; i < 8; i++) {
+      for (int i = 0; i < 1; i++) {
         buzzerFreq = i;
         HAL_Delay(100);
       }
