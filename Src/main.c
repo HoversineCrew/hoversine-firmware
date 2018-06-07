@@ -111,7 +111,7 @@ int main(void) {
 
   int lastSpeedL = 0, lastSpeedR = 0;
   int speedL = 0, speedR = 0;
-  float direction = 1;
+  //float direction = 1;
 
   #ifdef CONTROL_PPM
     PPM_Init();
