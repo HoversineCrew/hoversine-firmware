@@ -20,8 +20,8 @@
 //#define DEBUG_SERIAL_SERVOTERM
 #define DEBUG_SERIAL_ASCII          // human readable output. i.e. "345;1337;0;0\n\r"
 
-#define CONTROL_SERIAL_USART2
-#define CONTROL_BAUD       19200     // control via usart from eg an Arduino or raspberry
+//#define CONTROL_SERIAL_USART2
+//#define CONTROL_BAUD       19200     // control via usart from eg an Arduino or raspberry
 // for Arduino, use void loop(void){ Serial.write((uint8_t *) &steer, sizeof(steer)); Serial.write((uint8_t *) &speed, sizeof(speed));delay(20); }
 
 //#define DEBUG_I2C_LCD               // standard 16x2 or larger text-lcd via i2c-converter on right sensor board cable
@@ -37,11 +37,11 @@
 
 // ###### CONTROL VIA TWO POTENTIOMETERS ######
 // ADC-calibration to cover the full poti-range: connect potis to left sensor board cable (0 to 3.3V), watch UART on the right sensor board cable. the first 2 values are ADC1 and ADC2. write minimum and maximum poti position-values to ADC?_MIN and ADC?_MAX.
-//#define CONTROL_ADC                 // use ADC as input. disable DEBUG_SERIAL_USART2!
-//#define ADC1_MIN 0                  // min ADC1-value while poti at minimum-position (0 - 4095)
-//#define ADC1_MAX 4095               // max ADC1-value while poti at maximum-position (0 - 4095)
-//#define ADC2_MIN 0                  // min ADC2-value while poti at minimum-position (0 - 4095)
-//#define ADC2_MAX 4095               // max ADC2-value while poti at maximum-position (0 - 4095)
+#define CONTROL_ADC                 // use ADC as input. disable DEBUG_SERIAL_USART2!
+#define ADC1_MIN 0                  // min ADC1-value while poti at minimum-position (0 - 4095)
+#define ADC1_MAX 4095               // max ADC1-value while poti at maximum-position (0 - 4095)
+#define ADC2_MIN 0                  // min ADC2-value while poti at minimum-position (0 - 4095)
+#define ADC2_MAX 4095               // max ADC2-value while poti at maximum-position (0 - 4095)
 
 // ###### CONTROL VIA NINTENDO NUNCHUCK ######
 // left sensor board cable. keep cable short, use shielded cable, use ferrits, stabalize voltage in nunchuck, use the right one of the 2 types of nunchucks, add i2c pullups.
@@ -60,7 +60,7 @@
 // - weakr and weakl: field weakening for extra boost at high speed (speedR > 700 and speedL > 700). 0 to ~400
 
 #define FILTER              0.1  // lower value == softer filter. do not use values <0.01, you will get float precision issues.
-#define SPEED_COEFFICIENT   0.5  // higher value == stronger. 0.0 to 1.0
+#define SPEED_COEFFICIENT   1.0  // higher value == stronger. 0.0 to 1.0
 #define STEER_COEFFICIENT   0.5  // higher value == stronger. if you do not want any steering, set it to 0.0; 0.0 to 1.0
 //#define INVERT_R_DIRECTION
 //#define INVERT_L_DIRECTION
