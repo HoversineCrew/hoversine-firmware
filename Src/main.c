@@ -40,7 +40,6 @@ int cmd1;  // normalized input values. -1000 to 1000
 int cmd2;
 int cmd3;
 
-
 typedef struct{
    int16_t steer;
    int16_t speed;
@@ -67,12 +66,36 @@ extern uint8_t enable; // global variable for motor enable
 extern volatile uint32_t timeout; // global variable for timeout
 extern float batteryVoltage; // global variable for battery voltage
 
+uint32_t inactivity_timeout_counter;
+uint32_t main_loop_counter;
+
+int32_t motor_test_direction = 1;
+
 extern uint8_t nunchuck_data[6];
 #ifdef CONTROL_PPM
 extern volatile uint16_t ppm_captured_value[PPM_NUM_CHANNELS+1];
 #endif
 
 int milli_vel_error_sum = 0;
+
+
+void poweroff() {
+    #ifndef CONTROL_MOTOR_TEST
+    if (abs(speed) < 20) {
+    #endif
+        buzzerPattern = 0;
+        enable = 0;
+        for (int i = 0; i < 8; i++) {
+            buzzerFreq = i;
+            HAL_Delay(100);
+        }
+        HAL_GPIO_WritePin(OFF_PORT, OFF_PIN, 0);
+        while(1) {}
+    #ifndef CONTROL_MOTOR_TEST
+    }
+    #endif
+}
+
 
 int main(void) {
   HAL_Init();
@@ -159,10 +182,13 @@ int main(void) {
     LCD_WriteString(&lcd, "Initializing...");
   #endif
 
+  float board_temp_adc_filtered = (float)adc_buffer.temp;
+  float board_temp_deg_c;
+
   enable = 1;  // enable motors
 
   while(1) {
-    HAL_Delay(5);
+    HAL_Delay(DELAY_IN_MAIN_LOOP); //delay in ms
 
     #ifdef CONTROL_NUNCHUCK
       Nunchuck_Read();
@@ -204,6 +230,13 @@ int main(void) {
       timeout = 0;
     #endif
 
+    #ifdef CONTROL_MOTOR_TEST
+      if (motor_test_direction == 1) cmd2 += 1;
+      else cmd2 -= 1;
+      if (abs(cmd2) > CONTROL_MOTOR_TEST_MAX_SPEED) motor_test_direction = -motor_test_direction;
+
+      timeout = 0;
+    #endif
 
     // ####### LOW-PASS FILTER #######
     steer = steer * (1.0 - FILTER) + cmd1 * FILTER;
@@ -215,17 +248,10 @@ int main(void) {
     speedL = CLAMP(speed * SPEED_COEFFICIENT +  steer * STEER_COEFFICIENT, -1000, 1000);
 
 
-    // ####### DEBUG SERIAL OUT #######
-    #ifdef CONTROL_ADC
-      setScopeChannel(0, (int)adc_buffer.l_tx2);  // ADC1
-      setScopeChannel(1, (int)adc_buffer.l_rx2);  // ADC2
-    #endif
-    setScopeChannel(2, (int)speedR);
-    setScopeChannel(3, (int)speedL);
-
     #ifdef ADDITIONAL_CODE
       ADDITIONAL_CODE;
     #endif
+
 
     // ####### SET OUTPUTS #######
     if ((speedL < lastSpeedL + 50 && speedL > lastSpeedL - 50) && (speedR < lastSpeedR + 50 && speedR > lastSpeedR - 50) && timeout < TIMEOUT) {
@@ -244,41 +270,68 @@ int main(void) {
     lastSpeedL = speedL;
     lastSpeedR = speedR;
 
-    // ####### LOG TO CONSOLE #######
-    consoleScope();
 
-    if (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN)) {
+    if (main_loop_counter % 25 == 0) {
+      // ####### CALC BOARD TEMPERATURE #######
+      board_temp_adc_filtered = board_temp_adc_filtered * 0.99 + (float)adc_buffer.temp * 0.01;
+      board_temp_deg_c = ((float)TEMP_CAL_HIGH_DEG_C - (float)TEMP_CAL_LOW_DEG_C) / ((float)TEMP_CAL_HIGH_ADC - (float)TEMP_CAL_LOW_ADC) * (board_temp_adc_filtered - (float)TEMP_CAL_LOW_ADC) + (float)TEMP_CAL_LOW_DEG_C;
+      
+      // ####### DEBUG SERIAL OUT #######
+      #ifdef CONTROL_ADC
+        setScopeChannel(0, (int)adc_buffer.l_tx2);  // 1: ADC1
+        setScopeChannel(1, (int)adc_buffer.l_rx2);  // 2: ADC2
+      #endif
+      setScopeChannel(2, (int)speedR);  // 3: output speed: 0-1000
+      setScopeChannel(3, (int)speedL);  // 4: output speed: 0-1000
+      setScopeChannel(4, (int)adc_buffer.batt1);  // 5: for battery voltage calibration
+      setScopeChannel(5, (int)(batteryVoltage * 100.0f));  // 6: for verifying battery voltage calibration
+      setScopeChannel(6, (int)board_temp_adc_filtered);  // 7: for board temperature calibration
+      setScopeChannel(7, (int)board_temp_deg_c);  // 8: for verifying board temperature calibration
+      consoleScope();
+    }
+
+
+    // ####### POWEROFF BY POWER-BUTTON #######
+    if (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN) && weakr == 0 && weakl == 0) {
       enable = 0;
       while (HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN)) {}
-      buzzerFreq = 0;
-      buzzerPattern = 0;
-      for (int i = 0; i < 1; i++) {
-        buzzerFreq = i;
-        HAL_Delay(100);
-      }
-      HAL_GPIO_WritePin(OFF_PORT, OFF_PIN, 0);
-      while(1) {}
+      poweroff();
     }
 
-    if (batteryVoltage < BAT_LOW_LVL1 && batteryVoltage > BAT_LOW_LVL2) {
+
+    // ####### BEEP AND EMERGENCY POWEROFF #######
+    if ((TEMP_POWEROFF_ENABLE && board_temp_deg_c >= TEMP_POWEROFF && abs(speed) < 20) || (batteryVoltage < ((float)BAT_LOW_DEAD * (float)BAT_NUMBER_OF_CELLS) && abs(speed) < 20)) {  // poweroff before mainboard burns OR low bat 3
+      poweroff();
+    } else if (TEMP_WARNING_ENABLE && board_temp_deg_c >= TEMP_WARNING) {  // beep if mainboard gets hot
+      buzzerFreq = 4;
+      buzzerPattern = 1;
+    } else if (batteryVoltage < ((float)BAT_LOW_LVL1 * (float)BAT_NUMBER_OF_CELLS) && batteryVoltage > ((float)BAT_LOW_LVL2 * (float)BAT_NUMBER_OF_CELLS) && BAT_LOW_LVL1_ENABLE) {  // low bat 1: slow beep
       buzzerFreq = 5;
-      buzzerPattern = 8;
-    } else if  (batteryVoltage < BAT_LOW_LVL2 && batteryVoltage > BAT_LOW_DEAD) {
+      buzzerPattern = 42;
+    } else if (batteryVoltage < ((float)BAT_LOW_LVL2 * (float)BAT_NUMBER_OF_CELLS) && batteryVoltage > ((float)BAT_LOW_DEAD * (float)BAT_NUMBER_OF_CELLS) && BAT_LOW_LVL2_ENABLE) {  // low bat 2: fast beep
+      buzzerFreq = 5;
+      buzzerPattern = 6;
+    } else if (BEEPS_BACKWARD && speed < -50) {  // backward beep
       buzzerFreq = 5;
       buzzerPattern = 1;
-    } else if  (batteryVoltage < BAT_LOW_DEAD) {
-      buzzerPattern = 0;
-      enable = 0;
-      for (int i = 0; i < 8; i++) {
-        buzzerFreq = i;
-        HAL_Delay(100);
-      }
-      HAL_GPIO_WritePin(OFF_PORT, OFF_PIN, 0);
-      while(1) {}
-    } else {
+    } else {  // do not beep
       buzzerFreq = 0;
       buzzerPattern = 0;
     }
+
+
+    // ####### INACTIVITY TIMEOUT #######
+    if (abs(speedL) > 50 || abs(speedR) > 50) {
+      inactivity_timeout_counter = 0;
+    } else {
+      inactivity_timeout_counter ++;
+    }
+    if (inactivity_timeout_counter > (INACTIVITY_TIMEOUT * 60 * 1000) / (DELAY_IN_MAIN_LOOP + 1)) {  // rest of main loop needs maybe 1ms
+      poweroff();
+    }
+    
+    main_loop_counter += 1;
+    timeout++;
   }
 }
 
@@ -310,7 +363,7 @@ void SystemClock_Config(void) {
   HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
 
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
-  PeriphClkInit.AdcClockSelection    = RCC_ADCPCLK2_DIV8;
+  PeriphClkInit.AdcClockSelection    = RCC_ADCPCLK2_DIV8;  // 8 MHz
   HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit);
 
   /**Configure the Systick interrupt time

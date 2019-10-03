@@ -18,8 +18,8 @@ extern volatile adc_buf_t adc_buffer;
 
 extern volatile uint32_t timeout;
 
-uint8_t buzzerFreq = 0;
-uint8_t buzzerPattern = 0;
+uint32_t buzzerFreq = 0;
+uint32_t buzzerPattern = 0;
 
 uint8_t enable = 0;
 
@@ -121,7 +121,7 @@ inline void blockPhaseCurrent(int pos, int u, int v, int *q) {
   }
 }
 
-uint16_t buzzerTimer        = 0;
+uint32_t buzzerTimer        = 0;
 
 int offsetcount = 0;
 int offsetrl1   = 2000;
@@ -131,7 +131,7 @@ int offsetrr2   = 2000;
 int offsetdcl   = 2000;
 int offsetdcr   = 2000;
 
-float batteryVoltage = 40.0;
+float batteryVoltage = BAT_NUMBER_OF_CELLS * 4.0;
 
 int curl = 0;
 // int errorl = 0;
@@ -161,21 +161,9 @@ void DMA1_Channel1_IRQHandler() {
     return;
   }
 
-  if (buzzerTimer % 100 == 0) {
-    batteryVoltage = batteryVoltage * 0.999 + ((float)adc_buffer.batt1 * ADC_BATTERY_VOLT) * 0.001;
+  if (buzzerTimer % 1000 == 0) {  // because you get float rounding errors if it would run every time
+    batteryVoltage = batteryVoltage * 0.99 + ((float)adc_buffer.batt1 * ((float)BAT_CALIB_REAL_VOLTAGE / (float)BAT_CALIB_ADC)) * 0.01;
   }
-
-
-  #ifdef BEEPS_BACKWARD
-    if (speed < -50 && enable == 1) {
-      buzzerFreq = 5;
-      buzzerPattern = 1;
-    } else if (enable == 1) {
-      buzzerFreq = 0;
-      buzzerPattern = 1;
-    }
-  #endif
-
 
   //disable PWM when current limit is reached (current chopping)
   if(ABS((adc_buffer.dcl - offsetdcl) * MOTOR_AMP_CONV_DC_AMP) > DC_CUR_LIMIT || timeout > TIMEOUT || enable == 0) {
@@ -218,6 +206,34 @@ void DMA1_Channel1_IRQHandler() {
 
   //setScopeChannel(2, (adc_buffer.rl1 - offsetrl1) / 8);
   //setScopeChannel(3, (adc_buffer.rl2 - offsetrl2) / 8);
+
+
+  // uint8_t buzz(uint16_t *notes, uint32_t len){
+    // static uint32_t counter = 0;
+    // static uint32_t timer = 0;
+    // if(len == 0){
+        // return(0);
+    // }
+    
+    // struct {
+        // uint16_t freq : 4;
+        // uint16_t volume : 4;
+        // uint16_t time : 8;
+    // } note = notes[counter];
+    
+    // if(timer / 500 == note.time){
+        // timer = 0;
+        // counter++;
+    // }
+    
+    // if(counter == len){
+        // counter = 0;
+    // }
+
+    // timer++;
+    // return(note.freq);
+  // }
+
 
   //create square wave for buzzer
   buzzerTimer++;

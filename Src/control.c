@@ -112,8 +112,6 @@ void Nunchuck_Read() {
 	//uint32_t  	Timeout 
 	//) 	
     timeout = 0;
-  } else {
-    timeout++;
   }
 
   if (timeout > 3) {

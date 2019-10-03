@@ -123,8 +123,7 @@
 
 #define DELAY_TIM_FREQUENCY_US 1000000
 
-#define MOTOR_AMP_CONV_DC_AMP 0.02
-#define ADC_BATTERY_VOLT      0.02647435897435897435897435897436
+#define MOTOR_AMP_CONV_DC_AMP 0.02  // A per bit (12) on ADC.
 
 #define MILLI_R (R * 1000)
 #define MILLI_PSI (PSI * 1000)
@@ -156,6 +155,6 @@ typedef struct {
   uint16_t dcl;
   uint16_t batt1;
   uint16_t l_tx2;
-  uint16_t bat1;
+  uint16_t temp;
   uint16_t l_rx2;
 } adc_buf_t;
